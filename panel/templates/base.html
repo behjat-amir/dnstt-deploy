@@ -19,8 +19,37 @@
   <style>
     body { font-family: 'Inter', system-ui, sans-serif; }
   </style>
+  {% block head %}{% endblock %}
 </head>
 <body class="bg-slate-50 min-h-screen">
-  {% block body %}{% endblock %}
+  <div class="flex min-h-screen">
+    <!-- Sidebar -->
+    <aside class="w-56 bg-slate-800 text-white flex-shrink-0 flex flex-col">
+      <div class="p-4 border-b border-slate-700">
+        <h1 class="font-semibold text-lg">DNSTT Panel</h1>
+        <p class="text-slate-400 text-xs mt-0.5">SSH tunnel management</p>
+      </div>
+      <nav class="flex-1 p-3 space-y-0.5">
+        <a href="{{ url_for('dashboard') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-200 hover:bg-slate-700 hover:text-white {% if request.endpoint == 'dashboard' %}bg-slate-700 text-white{% endif %}">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>
+          Dashboard
+        </a>
+        <a href="{{ url_for('users') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-200 hover:bg-slate-700 hover:text-white {% if request.endpoint == 'users' or request.endpoint == 'user_add' or request.endpoint == 'user_delete' or request.endpoint == 'user_password' %}bg-slate-700 text-white{% endif %}">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
+          Tunnel users
+        </a>
+      </nav>
+      <div class="p-3 border-t border-slate-700">
+        <a href="{{ url_for('logout') }}" class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-400 hover:bg-slate-700 hover:text-white">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+          Sign out
+        </a>
+      </div>
+    </aside>
+    <!-- Main content -->
+    <main class="flex-1 overflow-auto">
+      {% block body %}{% endblock %}
+    </main>
+  </div>
 </body>
 </html>

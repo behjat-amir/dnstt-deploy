@@ -13,7 +13,6 @@ if os.path.isfile(config_env):
                 k, v = line.split("=", 1)
                 os.environ[k.strip()] = v.strip()
 
-# Ensure we look for app in the panel directory
 base = os.environ.get("DNSTT_PANEL_BASE", "/opt/dnstt-panel")
 sys.path.insert(0, base)
 os.chdir(base)
