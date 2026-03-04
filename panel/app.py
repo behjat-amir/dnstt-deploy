@@ -21,7 +21,7 @@ try:
 except ImportError:
     psutil = None
 
-from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
+from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify, Response
 
 # Paths (overridable by env)
 BASE_DIR = Path(os.environ.get("DNSTT_PANEL_BASE", "/opt/dnstt-panel"))
@@ -238,7 +238,7 @@ def get_usage():
     if not psutil:
         return data
     try:
-        data["cpu_percent"] = round(psutil.cpu_percent(interval=0.1), 1)
+        data["cpu_percent"] = round(psutil.cpu_percent(interval=0.05), 1)
     except Exception:
         pass
     try:
@@ -421,6 +421,33 @@ def api_server_info():
 @login_required
 def api_usage():
     return jsonify(get_usage())
+
+
+@app.route("/api/usage/stream")
+@login_required
+def api_usage_stream():
+    """Server-Sent Events: stream usage in real time (~10 times per second)."""
+    def generate():
+        interval = 0.1  # 100ms between updates
+        while True:
+            try:
+                data = get_usage()
+                yield "data: " + json.dumps(data) + "\n\n"
+            except GeneratorExit:
+                break
+            except Exception:
+                pass
+            time.sleep(interval)
+
+    return Response(
+        generate(),
+        mimetype="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
 
 
 @app.route("/api/speedtest/run", methods=["POST"])

@@ -108,7 +108,7 @@
       <!-- Usage -->
       <section id="usage" class="scroll-mt-24 mb-8">
         <h2 class="text-base font-semibold text-slate-800 dark:text-slate-100 mb-3 border-b border-slate-200 dark:border-slate-600 pb-2">Live Usage</h2>
-        <p class="text-slate-600 dark:text-slate-400 text-sm mb-3">Updates every 0.2s.</p>
+        <p class="text-slate-600 dark:text-slate-400 text-sm mb-3">Real-time stream (updates ~10/s).</p>
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow border border-slate-200 dark:border-slate-600 p-4 sm:p-6">
           <div class="space-y-4">
             <div>
@@ -248,7 +248,6 @@
 
 <script>
 (function() {
-  var USAGE_INTERVAL_MS = 200;
   var body = document.body;
   var sidebar = document.getElementById('sidebar');
   var overlay = document.getElementById('sidebar-overlay');
@@ -332,27 +331,38 @@
     })
     .catch(function() { document.getElementById('server-info-loading').textContent = 'Failed to load server info.'; });
 
-  function updateUsage() {
-    fetch('{{ url_for("api_usage") }}')
-      .then(function(r) { return r.json(); })
-      .then(function(data) {
-        document.getElementById('overview-cpu').textContent = data.cpu_percent + '%';
-        document.getElementById('overview-ram').textContent = data.ram_percent + '%';
-        document.getElementById('overview-disk').textContent = data.disk_percent + '%';
-        document.getElementById('overview-uptime').textContent = formatUptime(data.uptime_seconds);
-        document.getElementById('usage-cpu').textContent = data.cpu_percent + '%';
-        document.getElementById('usage-cpu-bar').style.width = data.cpu_percent + '%';
-        document.getElementById('usage-ram').textContent = data.ram_used_mb + ' / ' + data.ram_total_mb + ' MB (' + data.ram_percent + '%)';
-        document.getElementById('usage-ram-bar').style.width = data.ram_percent + '%';
-        document.getElementById('usage-disk').textContent = data.disk_used_gb + ' / ' + data.disk_total_gb + ' GB (' + data.disk_percent + '%)';
-        document.getElementById('usage-disk-bar').style.width = data.disk_percent + '%';
-        document.getElementById('usage-net').textContent = formatBytes(data.network_sent_bytes) + ' / ' + formatBytes(data.network_recv_bytes);
-        document.getElementById('usage-net-detail').textContent = 'Sent: ' + formatBytes(data.network_sent_bytes) + ' — Recv: ' + formatBytes(data.network_recv_bytes);
-      })
-      .catch(function() {});
+  function applyUsageData(data) {
+    document.getElementById('overview-cpu').textContent = data.cpu_percent + '%';
+    document.getElementById('overview-ram').textContent = data.ram_percent + '%';
+    document.getElementById('overview-disk').textContent = data.disk_percent + '%';
+    document.getElementById('overview-uptime').textContent = formatUptime(data.uptime_seconds);
+    document.getElementById('usage-cpu').textContent = data.cpu_percent + '%';
+    document.getElementById('usage-cpu-bar').style.width = data.cpu_percent + '%';
+    document.getElementById('usage-ram').textContent = data.ram_used_mb + ' / ' + data.ram_total_mb + ' MB (' + data.ram_percent + '%)';
+    document.getElementById('usage-ram-bar').style.width = data.ram_percent + '%';
+    document.getElementById('usage-disk').textContent = data.disk_used_gb + ' / ' + data.disk_total_gb + ' GB (' + data.disk_percent + '%)';
+    document.getElementById('usage-disk-bar').style.width = data.disk_percent + '%';
+    document.getElementById('usage-net').textContent = formatBytes(data.network_sent_bytes) + ' / ' + formatBytes(data.network_recv_bytes);
+    document.getElementById('usage-net-detail').textContent = 'Sent: ' + formatBytes(data.network_sent_bytes) + ' — Recv: ' + formatBytes(data.network_recv_bytes);
   }
-  setInterval(updateUsage, USAGE_INTERVAL_MS);
-  updateUsage();
+
+  (function connectUsageStream() {
+    var url = '{{ url_for("api_usage_stream") }}';
+    if (typeof EventSource === 'undefined') {
+      var fallback = setInterval(function() {
+        fetch('{{ url_for("api_usage") }}').then(function(r) { return r.json(); }).then(applyUsageData).catch(function() {});
+      }, 200);
+      return;
+    }
+    var es = new EventSource(url);
+    es.onmessage = function(ev) {
+      try { applyUsageData(JSON.parse(ev.data)); } catch (e) {}
+    };
+    es.onerror = function() {
+      es.close();
+      setTimeout(connectUsageStream, 2000);
+    };
+  })();
 
   var speedtestBtn = document.getElementById('speedtest-btn');
   var statusEl = document.getElementById('speedtest-status');
