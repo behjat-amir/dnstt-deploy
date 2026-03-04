@@ -426,9 +426,9 @@ def api_usage():
 @app.route("/api/usage/stream")
 @login_required
 def api_usage_stream():
-    """Server-Sent Events: stream usage in real time (~10 times per second)."""
+    """Server-Sent Events: stream usage every 5 seconds."""
     def generate():
-        interval = 0.1  # 100ms between updates
+        interval = 5  # 5 seconds between updates
         while True:
             try:
                 data = get_usage()
