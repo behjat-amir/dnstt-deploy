@@ -274,10 +274,10 @@ def get_usage():
 
 
 def run_speedtest():
-    """Run speedtest-cli via current Python (venv) so pip-installed package is used."""
+    """Run speedtest via current Python (venv). Package speedtest-cli exposes module 'speedtest'."""
     import sys
-    # Use same Python as panel (venv) so speedtest-cli from requirements.txt is found
-    cmd = [sys.executable, "-m", "speedtest_cli", "--json"]
+    # Module name is 'speedtest' (not speedtest_cli); same Python as panel so venv's package is used
+    cmd = [sys.executable, "-m", "speedtest", "--json"]
     try:
         result = subprocess.run(
             cmd,
