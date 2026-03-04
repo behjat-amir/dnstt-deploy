@@ -428,7 +428,7 @@ def api_usage():
 def api_usage_stream():
     """Server-Sent Events: stream usage every 5 seconds."""
     def generate():
-        interval = 5  # 5 seconds between updates
+        interval = 1  # 5 seconds between updates
         while True:
             try:
                 data = get_usage()
