@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fa" class="scroll-smooth">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
+      darkMode: 'class',
       theme: {
         extend: {
           fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] }
@@ -18,9 +19,30 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Inter', system-ui, sans-serif; }
+    @media (max-width: 640px) {
+      .nav-menu { display: none; }
+      .nav-menu.open { display: flex !important; flex-direction: column; position: absolute; top: 100%; right: 0; left: 0; background: inherit; padding: 0.5rem; border-radius: 0 0 0.5rem 0.5rem; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1); z-index: 20; }
+    }
   </style>
 </head>
-<body class="bg-slate-50 min-h-screen">
+<body class="bg-slate-50 dark:bg-slate-900 min-h-screen text-slate-800 dark:text-slate-200 transition-colors">
   {% block body %}{% endblock %}
+  <script>
+    (function() {
+      var stored = localStorage.getItem('dnstt-theme');
+      var preferDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var dark = stored === 'dark' || (stored !== 'light' && preferDark);
+      document.documentElement.classList.toggle('dark', dark);
+      window.dnsttSetTheme = function(darkMode) {
+        document.documentElement.classList.toggle('dark', darkMode);
+        localStorage.setItem('dnstt-theme', darkMode ? 'dark' : 'light');
+      };
+      window.dnsttToggleTheme = function() {
+        var dark = document.documentElement.classList.toggle('dark');
+        localStorage.setItem('dnstt-theme', dark ? 'dark' : 'light');
+        return dark;
+      };
+    })();
+  </script>
 </body>
 </html>
