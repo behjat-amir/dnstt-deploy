@@ -391,12 +391,23 @@ print_success_box() {
     fi
 
     # SSH panel info if applicable
-    if [ "$TUNNEL_MODE" = "ssh" ] && [ -f "${CONFIG_DIR}/panel_credentials.txt" ]; then
-        echo ""
-        echo -e "${header_color}SSH User Management Panel:${reset}"
-        echo -e "${text_color}$(cat "${CONFIG_DIR}/panel_credentials.txt")${reset}"
-        echo -e "${text_color}Add/remove SSH tunnel users in the panel. Ensure sshd has PasswordAuthentication yes.${reset}"
-        echo -e "${text_color}Panel service: systemctl status dnstt-panel${reset}"
+    if [ "$TUNNEL_MODE" = "ssh" ]; then
+        if [ -f "${CONFIG_DIR}/panel_credentials.txt" ]; then
+            echo ""
+            echo -e "${header_color}SSH User Management Panel:${reset}"
+            echo -e "${text_color}$(cat "${CONFIG_DIR}/panel_credentials.txt")${reset}"
+            echo -e "${text_color}Add/remove SSH tunnel users in the panel. Ensure sshd has PasswordAuthentication yes.${reset}"
+            echo -e "${text_color}Panel service: systemctl status dnstt-panel${reset}"
+        elif [ -f "${CONFIG_DIR}/panel.env" ]; then
+            local panel_port
+            panel_port=$(grep "^PANEL_PORT=" "${CONFIG_DIR}/panel.env" 2>/dev/null | cut -d= -f2)
+            echo ""
+            echo -e "${header_color}SSH User Management Panel:${reset}"
+            echo -e "${text_color}Panel URL: http://YOUR_SERVER_IP:${panel_port:-5847}${reset}"
+            echo -e "${text_color}Credentials: cat ${CONFIG_DIR}/panel_credentials.txt${reset}"
+            echo -e "${text_color}(If that file is missing, panel init may have failed or panel was already set up. Check: systemctl status dnstt-panel)${reset}"
+            echo -e "${text_color}Panel service: systemctl status dnstt-panel${reset}"
+        fi
     fi
 
     # Bottom border
@@ -1154,6 +1165,16 @@ install_dnstt_panel() {
     if [[ -f "${CONFIG_DIR}/panel.db" ]]; then
         print_status "Panel already initialized; keeping existing credentials."
         panel_port=$(grep "^PANEL_PORT=" "${CONFIG_DIR}/panel.env" 2>/dev/null | cut -d= -f2) || panel_port="5847"
+        # Ensure user has at least panel URL for reference (credentials were set at first install)
+        if [[ ! -f "${CONFIG_DIR}/panel_credentials.txt" ]]; then
+            cat > "${CONFIG_DIR}/panel_credentials.txt" << EOF
+Panel URL: http://YOUR_SERVER_IP:${panel_port}
+Admin username/password were set at first install (not stored here).
+To reset admin: ${PANEL_INSTALL_DIR}/venv/bin/python ${PANEL_INSTALL_DIR}/init_panel.py
+EOF
+            chmod 600 "${CONFIG_DIR}/panel_credentials.txt"
+            chown root:root "${CONFIG_DIR}/panel_credentials.txt"
+        fi
     else
         local init_out
         init_out=$("$PANEL_INSTALL_DIR/venv/bin/python" "$PANEL_INSTALL_DIR/init_panel.py" 2>/dev/null) || init_out=$("$PANEL_INSTALL_DIR/venv/bin/python3" "$PANEL_INSTALL_DIR/init_panel.py" 2>/dev/null) || true
@@ -1177,6 +1198,15 @@ Panel URL: http://YOUR_SERVER_IP:${panel_port}
 Admin username: ${panel_admin}
 Admin password: ${panel_pass}
 Save these credentials; the password cannot be recovered.
+EOF
+            chmod 600 "${CONFIG_DIR}/panel_credentials.txt"
+            chown root:root "${CONFIG_DIR}/panel_credentials.txt"
+        else
+            # Init may have failed; still write URL so user can access panel or re-run init
+            print_warning "Could not read panel admin credentials from init. Writing panel URL only."
+            cat > "${CONFIG_DIR}/panel_credentials.txt" << EOF
+Panel URL: http://YOUR_SERVER_IP:${panel_port}
+Admin credentials were not captured. To create/reset: ${PANEL_INSTALL_DIR}/venv/bin/python ${PANEL_INSTALL_DIR}/init_panel.py
 EOF
             chmod 600 "${CONFIG_DIR}/panel_credentials.txt"
             chown root:root "${CONFIG_DIR}/panel_credentials.txt"
