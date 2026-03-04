@@ -274,19 +274,23 @@ def get_usage():
 
 
 def run_speedtest():
-    """Run speedtest-cli --json, return dict with download, upload (Mbps), ping (ms) or error."""
+    """Run speedtest-cli via current Python (venv) so pip-installed package is used."""
+    import sys
+    # Use same Python as panel (venv) so speedtest-cli from requirements.txt is found
+    cmd = [sys.executable, "-m", "speedtest_cli", "--json"]
     try:
         result = subprocess.run(
-            ["speedtest-cli", "--json"],
+            cmd,
             capture_output=True,
             text=True,
             timeout=90,
             env={**os.environ, "PYTHONIOENCODING": "utf-8"},
+            cwd=str(BASE_DIR),
         )
     except subprocess.TimeoutExpired:
         return {"error": "Speedtest timed out (90s)."}
     except FileNotFoundError:
-        return {"error": "speedtest-cli not installed. Run: pip install speedtest-cli"}
+        return {"error": "speedtest-cli not installed. Run: pip install speedtest-cli (in panel venv)."}
     except Exception as e:
         return {"error": str(e)}
     if result.returncode != 0:
