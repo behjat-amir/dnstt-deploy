@@ -1,130 +1,83 @@
 {% extends "base.html" %}
 {% block title %}Dashboard – DNSTT Panel{% endblock %}
-{% block head %}
-<script>
-  const POLL_MS = 200;
-
-  function formatNum(v) {
-    if (v == null || v === undefined) return '—';
-    return Number(v).toLocaleString();
-  }
-
-  function updateStats() {
-    fetch('{{ url_for("api_stats") }}', { credentials: 'same-origin' })
-      .then(r => r.json())
-      .then(d => {
-        document.getElementById('cpu-val').textContent = formatNum(d.cpu_percent) + '%';
-        document.getElementById('cpu-bar').style.width = (d.cpu_percent || 0) + '%';
-
-        document.getElementById('mem-val').textContent = formatNum(d.memory_percent) + '%';
-        document.getElementById('mem-bar').style.width = (d.memory_percent || 0) + '%';
-        document.getElementById('mem-used').textContent = formatNum(d.memory_used_mb) + ' MB';
-        document.getElementById('mem-total').textContent = formatNum(d.memory_total_mb) + ' MB';
-
-        document.getElementById('disk-val').textContent = formatNum(d.disk_percent) + '%';
-        document.getElementById('disk-bar').style.width = (d.disk_percent || 0) + '%';
-        document.getElementById('disk-used').textContent = formatNum(d.disk_used_gb) + ' GB';
-        document.getElementById('disk-total').textContent = formatNum(d.disk_total_gb) + ' GB';
-
-        document.getElementById('load-1').textContent = formatNum(d.load_1);
-        document.getElementById('load-5').textContent = formatNum(d.load_5);
-        document.getElementById('load-15').textContent = formatNum(d.load_15);
-
-        document.getElementById('uptime').textContent = d.uptime_text || '—';
-
-        document.getElementById('net-sent').textContent = formatNum(d.net_sent_kbps) + ' KB/s';
-        document.getElementById('net-recv').textContent = formatNum(d.net_recv_kbps) + ' KB/s';
-      })
-      .catch(() => {});
-  }
-
-  document.addEventListener('DOMContentLoaded', function() {
-    updateStats();
-    setInterval(updateStats, POLL_MS);
-  });
-</script>
-{% endblock %}
 {% block body %}
-<div class="p-6 md:p-8">
-  <h2 class="text-xl font-semibold text-slate-800 mb-6">Server dashboard</h2>
-  <p class="text-slate-600 text-sm mb-8">Usage updates every 0.2s.</p>
-
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-    <!-- CPU -->
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-      <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wider mb-2">CPU</h3>
-      <div class="flex items-baseline justify-between mb-2">
-        <span id="cpu-val" class="text-2xl font-semibold text-slate-800">—</span>
-      </div>
-      <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
-        <div id="cpu-bar" class="h-full bg-slate-600 rounded-full transition-all duration-150" style="width: 0%"></div>
-      </div>
+<div class="min-h-screen">
+  <header class="bg-white border-b border-slate-200">
+    <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
+      <h1 class="text-lg font-semibold text-slate-800">DNSTT SSH Panel</h1>
+      <a href="{{ url_for('logout') }}" class="text-sm text-slate-600 hover:text-slate-900">Sign out</a>
     </div>
+  </header>
 
-    <!-- Memory -->
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-      <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wider mb-2">Memory</h3>
-      <div class="flex items-baseline justify-between mb-2">
-        <span id="mem-val" class="text-2xl font-semibold text-slate-800">—</span>
-        <span class="text-slate-500 text-sm"><span id="mem-used">—</span> / <span id="mem-total">—</span></span>
-      </div>
-      <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
-        <div id="mem-bar" class="h-full bg-blue-500 rounded-full transition-all duration-150" style="width: 0%"></div>
-      </div>
-    </div>
+  <main class="max-w-4xl mx-auto px-4 py-8">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, msg in messages %}
+          <div class="mb-4 p-3 rounded-lg text-sm {{ 'bg-red-50 text-red-700' if category == 'error' else 'bg-emerald-50 text-emerald-700' }}">
+            {{ msg }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
 
-    <!-- Disk -->
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-      <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wider mb-2">Disk (/)</h3>
-      <div class="flex items-baseline justify-between mb-2">
-        <span id="disk-val" class="text-2xl font-semibold text-slate-800">—</span>
-        <span class="text-slate-500 text-sm"><span id="disk-used">—</span> / <span id="disk-total">—</span></span>
-      </div>
-      <div class="h-2 bg-slate-100 rounded-full overflow-hidden">
-        <div id="disk-bar" class="h-full bg-emerald-500 rounded-full transition-all duration-150" style="width: 0%"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-    <!-- Load average -->
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-      <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wider mb-3">Load average</h3>
-      <div class="flex gap-4">
-        <div>
-          <span class="text-slate-400 text-xs">1 min</span>
-          <p id="load-1" class="text-lg font-semibold text-slate-800">—</p>
+    <section class="bg-white rounded-2xl shadow border border-slate-200 p-6 mb-8">
+      <h2 class="text-base font-semibold text-slate-800 mb-4">Add tunnel user</h2>
+      <p class="text-slate-600 text-sm mb-4">Users can connect via SSH through the DNS tunnel using the username and password you set.</p>
+      <form method="post" action="{{ url_for('user_add') }}" class="flex flex-wrap gap-3 items-end">
+        <div class="flex-1 min-w-[140px]">
+          <label for="username" class="block text-sm font-medium text-slate-700 mb-1">Username</label>
+          <input type="text" id="username" name="username" required pattern="[a-zA-Z][a-zA-Z0-9_]{2,31}" title="3–32 chars, start with letter, letters/numbers/underscore"
+                 class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-400 focus:border-slate-400" placeholder="e.g. alice">
         </div>
-        <div>
-          <span class="text-slate-400 text-xs">5 min</span>
-          <p id="load-5" class="text-lg font-semibold text-slate-800">—</p>
+        <div class="flex-1 min-w-[140px]">
+          <label for="password" class="block text-sm font-medium text-slate-700 mb-1">Password</label>
+          <input type="password" id="password" name="password" required minlength="6"
+                 class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-slate-400 focus:border-slate-400" placeholder="min 6 characters">
         </div>
-        <div>
-          <span class="text-slate-400 text-xs">15 min</span>
-          <p id="load-15" class="text-lg font-semibold text-slate-800">—</p>
+        <button type="submit" class="py-2 px-4 bg-slate-800 text-white font-medium rounded-lg hover:bg-slate-700 focus:ring-2 focus:ring-offset-2 focus:ring-slate-600">
+          Add user
+        </button>
+      </form>
+    </section>
+
+    <section class="bg-white rounded-2xl shadow border border-slate-200 overflow-hidden">
+      <h2 class="text-base font-semibold text-slate-800 p-6 pb-0">Tunnel users</h2>
+      <p class="text-slate-600 text-sm px-6 pt-2">These users can log in via SSH through the DNS tunnel.</p>
+      {% if users %}
+        <div class="overflow-x-auto">
+          <table class="w-full mt-4">
+            <thead>
+              <tr class="border-b border-slate-200 bg-slate-50/80">
+                <th class="text-left text-xs font-medium text-slate-600 uppercase tracking-wider px-6 py-3">Username</th>
+                <th class="text-left text-xs font-medium text-slate-600 uppercase tracking-wider px-6 py-3 hidden sm:table-cell">Created</th>
+                <th class="text-right text-xs font-medium text-slate-600 uppercase tracking-wider px-6 py-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for u in users %}
+                <tr class="border-b border-slate-100 hover:bg-slate-50/50">
+                  <td class="px-6 py-3 font-medium text-slate-800">{{ u.username }}</td>
+                  <td class="px-6 py-3 text-slate-600 text-sm hidden sm:table-cell">{{ u.created_at[:10] if u.created_at else '—' }}</td>
+                  <td class="px-6 py-3 text-right">
+                    <div class="flex flex-col sm:flex-row justify-end gap-2">
+                      <form method="post" action="{{ url_for('user_password', username=u.username) }}" class="inline" onsubmit="return confirm('Change password for {{ u.username }}?');">
+                        <input type="password" name="password" placeholder="New password" minlength="6" required class="mr-2 px-2 py-1 border border-slate-300 rounded text-sm w-28 sm:w-36">
+                        <button type="submit" class="text-sm text-slate-600 hover:text-slate-900 whitespace-nowrap">Change password</button>
+                      </form>
+                      <form method="post" action="{{ url_for('user_delete', username=u.username) }}" class="inline" onsubmit="return confirm('Remove user {{ u.username }}? They will no longer be able to connect.');">
+                        <button type="submit" class="text-sm text-red-600 hover:text-red-800">Remove</button>
+                      </form>
+                    </div>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
         </div>
-      </div>
-    </div>
-
-    <!-- Uptime -->
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-      <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wider mb-2">Uptime</h3>
-      <p id="uptime" class="text-xl font-semibold text-slate-800">—</p>
-    </div>
-
-    <!-- Network (rate) -->
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-      <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wider mb-2">Network usage</h3>
-      <div class="space-y-1">
-        <p class="text-slate-700"><span class="text-slate-500 text-sm">↑ Sent</span> <span id="net-sent" class="font-medium">—</span></p>
-        <p class="text-slate-700"><span class="text-slate-500 text-sm">↓ Recv</span> <span id="net-recv" class="font-medium">—</span></p>
-      </div>
-    </div>
-  </div>
-
-  <div class="mt-8 bg-white rounded-xl border border-slate-200 shadow-sm p-5">
-    <h3 class="text-sm font-medium text-slate-500 uppercase tracking-wider mb-2">Quick links</h3>
-    <p class="text-slate-600 text-sm mb-2">Manage SSH tunnel users (add/remove/change password) in the <a href="{{ url_for('users') }}" class="text-slate-800 font-medium underline">Tunnel users</a> section.</p>
-  </div>
+      {% else %}
+        <p class="text-slate-500 text-sm px-6 py-6">No tunnel users yet. Add one above.</p>
+      {% endif %}
+    </section>
+  </main>
 </div>
 {% endblock %}
