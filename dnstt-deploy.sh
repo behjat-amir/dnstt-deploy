@@ -76,10 +76,18 @@ install_script() {
 # Function to handle manual update
 update_script() {
     print_status "Checking for script updates..."
+    print_status "Downloading from: $SCRIPT_URL"
 
     local temp_script="/tmp/dnstt-deploy-latest.sh"
     if ! curl -Ls "$SCRIPT_URL" -o "$temp_script"; then
-        print_error "Failed to download latest version"
+        print_error "Failed to download latest version (check network or URL)"
+        return 1
+    fi
+
+    # Ensure we got a real script, not a 404/error page
+    if ! head -1 "$temp_script" | grep -q '^#!/bin/bash'; then
+        print_error "Downloaded file does not look like the script (maybe 404 or wrong URL). Update skipped."
+        rm -f "$temp_script"
         return 1
     fi
 
@@ -89,7 +97,7 @@ update_script() {
     latest_checksum=$(sha256sum "$temp_script" | cut -d' ' -f1)
 
     if [ "$current_checksum" = "$latest_checksum" ]; then
-        print_status "You are already running the latest version"
+        print_status "Installed script matches the version on GitHub. No update needed."
         rm "$temp_script"
         return 0
     fi
@@ -259,18 +267,20 @@ check_for_updates() {
 
         local temp_script="/tmp/dnstt-deploy-latest.sh"
         if curl -Ls "$SCRIPT_URL" -o "$temp_script" 2>/dev/null; then
-            local current_checksum
-            local latest_checksum
-            current_checksum=$(sha256sum "$SCRIPT_INSTALL_PATH" | cut -d' ' -f1)
-            latest_checksum=$(sha256sum "$temp_script" | cut -d' ' -f1)
+            if head -1 "$temp_script" 2>/dev/null | grep -q '^#!/bin/bash'; then
+                local current_checksum
+                local latest_checksum
+                current_checksum=$(sha256sum "$SCRIPT_INSTALL_PATH" | cut -d' ' -f1)
+                latest_checksum=$(sha256sum "$temp_script" | cut -d' ' -f1)
 
-            if [ "$current_checksum" != "$latest_checksum" ]; then
-                UPDATE_AVAILABLE=true
-                print_warning "New version available! Use menu option 2 to update."
-            else
-                print_status "Script is up to date"
+                if [ "$current_checksum" != "$latest_checksum" ]; then
+                    UPDATE_AVAILABLE=true
+                    print_warning "New version available! Use menu option 2 to update."
+                else
+                    print_status "Script is up to date"
+                fi
             fi
-            rm "$temp_script"
+            rm -f "$temp_script"
         else
             print_warning "Could not check for updates (network issue)"
         fi
